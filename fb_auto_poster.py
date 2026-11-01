@@ -106,13 +106,20 @@ def generate_devotional_caption(image_url):
             print(f"[INFO] Gemini model {m} fallback: {e}")
             continue
 
-    # Fallback caption
+    # Rich, viral long-form fallback caption with extensive keywords & hashtags
     return (
-        "🙏 जय श्री राम | हर हर महादेव | ॐ नमो भगवते वासुदेवाय 🙏\n\n"
-        "जिनके हृदय में ईश्वर का वास होता है, उनके जीवन में कभी अंधेरा नहीं हो सकता।\n"
-        "प्रभु के इस दिव्य स्वरूप के दर्शन करें और उनका आशीर्वाद प्राप्त करें।\n\n"
-        "🌿 भक्ति लेंस (Bhakti Lens) | नित्य दर्शन 🌿\n\n"
-        "#BhaktiLens #Sanatan #DailyDarshan #HarHarMahadev #JaiShreeRam #RadheKrishna #Hinduism #SpiritualVibes #Blessings"
+        "🙏 ॐ श्री गणेशाय नमः | ॐ नमः शिवाय | जय श्री राम | ॐ नमो भगवते वासुदेवाय 🙏\n\n"
+        "✨ आज का पावन दर्शन: जीवन में जब भी कोई मार्ग कठिन लगे, तो प्रभु के चरणों में अपना सर्वस्व समर्पित कर दीजिए। जिनका भरोसा सर्वशक्तिमान परमात्मा पर होता है, उनके संकट भी अवसर बन जाते हैं और अंधकार भी प्रकाश में बदल जाता है।\n\n"
+        "📖 आध्यात्मिक विचार व जीवन दर्शन:\n"
+        "संसार की हर वस्तु नश्वर है, परंतु प्रभु का नाम और उनकी भक्ति शाश्वत है। शुद्ध अंतःकरण से किया गया कर्म ही ईश्वर की सच्ची पूजा है। जब आप दूसरों के कल्याण की कामना करते हैं, तो भगवान स्वयं आपके जीवन के समस्त विघ्नों को हर लेते हैं।\n\n"
+        "🌺 नित्य प्रार्थना व मंगल कामना:\n"
+        "प्रभु का यह दिव्य स्वरूप आपके और आपके पूरे परिवार के जीवन में सुख, शांति, अच्छा स्वास्थ्य और सकारात्मक ऊर्जा का संचार करे। आपके घर में सदैव रिद्धि-सिद्धि और माता लक्ष्मी का वास रहे।\n\n"
+        "👉 दर्शन का लाभ लें और कमेंट में अपने इष्ट देव का नाम (हर हर महादेव / जय श्री राम / राधे राधे) लिखकर अपनी हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने प्रियजनों के साथ शेयर करें। 🙏\n\n"
+        "🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🔍 Searches & Topics Covered:\n"
+        "Daily Devotional Darshan, Hindu God 3D Wallpaper, Morning Bhakti Status, Sanatan Dharma Quotes in Hindi, Mandir Aarti Darshan, Positive Morning Thoughts, Hindu Festivals & Puja, Motivational Spiritual Thoughts\n\n"
+        "#BhaktiLens #SanatanDharma #DailyDarshan #HarHarMahadev #JaiShreeRam #RadheKrishna #ShreeGanesh #HanumanJi #MahadevStatus #KrishnaVibes #AyodhyaRamMandir #SpiritualQuotes #Hinduism #VedicWisdom #Blessings #MorningMotivation #PositiveVibes #Bhakti #IndianCulture #DivineAura"
     )
 
 
@@ -203,3 +210,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
