@@ -1,0 +1,7 @@
+fb_config.json
+*.key
+*.pem
+__pycache__/
+images/*.jpg
+images/*.png
+images/*.webp
