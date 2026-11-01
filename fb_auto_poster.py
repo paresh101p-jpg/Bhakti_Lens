@@ -117,9 +117,9 @@ def generate_devotional_caption(image_url):
         "👉 दर्शन का लाभ लें और कमेंट में अपने इष्ट देव का नाम (हर हर महादेव / जय श्री राम / राधे राधे) लिखकर अपनी हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने प्रियजनों के साथ शेयर करें। 🙏\n\n"
         "🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🔍 Searches & Topics Covered:\n"
-        "Daily Devotional Darshan, Hindu God 3D Wallpaper, Morning Bhakti Status, Sanatan Dharma Quotes in Hindi, Mandir Aarti Darshan, Positive Morning Thoughts, Hindu Festivals & Puja, Motivational Spiritual Thoughts\n\n"
-        "#BhaktiLens #SanatanDharma #DailyDarshan #HarHarMahadev #JaiShreeRam #RadheKrishna #ShreeGanesh #HanumanJi #MahadevStatus #KrishnaVibes #AyodhyaRamMandir #SpiritualQuotes #Hinduism #VedicWisdom #Blessings #MorningMotivation #PositiveVibes #Bhakti #IndianCulture #DivineAura"
+        "🔍 मुख्य खोज एवं विषय (Searches & Topics Covered):\n"
+        "आज का सुविचार, सुबह का शुभ संदेश, दैनिक भक्ति दर्शन, सनातन धर्म सुविचार, श्री राम आरती दर्शन, हर हर महादेव स्टेटस, राधे कृष्ण भजन, हनुमान जी कष्ट निवारण, शुभ प्रभात सुविचार, भगवान की फोटो वॉलपेपर, आध्यात्मिक अनमोल वचन, Daily Devotional Darshan, Hindu God 3D Wallpaper, Morning Bhakti Status\n\n"
+        "#भक्ति #सनातन_धर्म #दैनिक_दर्शन #हर_हर_महादेव #जय_श्री_राम #राधे_कृष्ण #शुभ_प्रभात #सुविचार #महादेव #हनुमान #श्रीराम #BhaktiLens #SanatanDharma #DailyDarshan #HarHarMahadev #JaiShreeRam #RadheKrishna #MahadevStatus #SpiritualQuotes #Hinduism"
     )
 
 
