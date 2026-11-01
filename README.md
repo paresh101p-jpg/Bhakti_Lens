@@ -5,3 +5,4 @@
 - **3:4 Portrait High-Definition Photos**
 - **Powered by Google Gemini Vision AI**: Scans visual features, crafts devotional stories, blessings, mantras & viral tags.
 - **Official Facebook Graph API**: Direct cloud CDN posting without server bloat.
+

@@ -37,3 +37,4 @@ jobs:
           git add images_urls.txt used_urls.txt images_urls_backup.txt || true
           git commit -m "Auto-posted daily image to Facebook Page [skip ci]" || true
           git push origin master || true
+
