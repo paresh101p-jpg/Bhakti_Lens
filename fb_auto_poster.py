@@ -48,7 +48,14 @@ if os.path.exists(CONFIG_FILE):
                 FB_PAGE_ID = cfg.get("FB_PAGE_ID", "")
             if not FB_PAGE_ACCESS_TOKEN:
                 FB_PAGE_ACCESS_TOKEN = cfg.get("FB_PAGE_ACCESS_TOKEN", "")
-            if not GEMINI_API_KEY or genai is None:
+            if not GEMINI_API_KEY:
+                GEMINI_API_KEY = cfg.get("GEMINI_API_KEY", "")
+    except Exception as e:
+        print(f"[WARN] Could not read fb_config.json: {e}")
+
+def generate_devotional_caption(image_url):
+    """Uses Gemini Vision AI to inspect image and generate a heartfelt spiritual caption and tags."""
+    if not GEMINI_API_KEY or genai is None:
         print("[WARN] No GEMINI_API_KEY found, using rich long-form SEO fallback caption.")
         return get_rich_long_fallback()
 
