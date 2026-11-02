@@ -20,7 +20,10 @@ import time
 import json
 import random
 import requests
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -45,7 +48,7 @@ if os.path.exists(CONFIG_FILE):
                 FB_PAGE_ID = cfg.get("FB_PAGE_ID", "")
             if not FB_PAGE_ACCESS_TOKEN:
                 FB_PAGE_ACCESS_TOKEN = cfg.get("FB_PAGE_ACCESS_TOKEN", "")
-            if not GEMINI_API_KEY:
+            if not GEMINI_API_KEY or genai is None:
                 GEMINI_API_KEY = cfg.get("GEMINI_API_KEY", "")
     except Exception as e:
         print(f"[WARN] Could not read fb_config.json: {e}")
@@ -53,7 +56,7 @@ if os.path.exists(CONFIG_FILE):
 
 def generate_devotional_caption(image_url):
     """Uses Gemini Vision AI to inspect image and generate a heartfelt spiritual caption & tags."""
-    if not GEMINI_API_KEY:
+    if not GEMINI_API_KEY or genai is None:
         print("[WARN] No GEMINI_API_KEY found, using serene default caption.")
         return (
             "🙏 ॐ नमो भगवते वासुदेवाय नमः 🙏\n\n"
