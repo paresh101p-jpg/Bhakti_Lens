@@ -49,47 +49,57 @@ if os.path.exists(CONFIG_FILE):
             if not FB_PAGE_ACCESS_TOKEN:
                 FB_PAGE_ACCESS_TOKEN = cfg.get("FB_PAGE_ACCESS_TOKEN", "")
             if not GEMINI_API_KEY or genai is None:
-                GEMINI_API_KEY = cfg.get("GEMINI_API_KEY", "")
-    except Exception as e:
-        print(f"[WARN] Could not read fb_config.json: {e}")
-
-
-def generate_devotional_caption(image_url):
-    """Uses Gemini Vision AI to inspect image and generate a heartfelt spiritual caption & tags."""
-    if not GEMINI_API_KEY or genai is None:
-        print("[WARN] No GEMINI_API_KEY found, using serene default caption.")
-        return (
-            "🙏 ॐ नमो भगवते वासुदेवाय नमः 🙏\n\n"
-            "ईश्वर का स्मरण हर विपत्ति को शक्ति और हर अंधकार को प्रकाश में बदल देता है।\n"
-            "आज का दिन आपके और आपके परिवार के लिए सुख, शांति और समृद्धि लेकर आए।\n\n"
-            "✨ भक्ति लेंस (Bhakti Lens) ✨\n\n"
-            "#Bhakti #BhaktiLens #SanatanDharma #DailyDarshan #SpiritualVibes #Mandir #Blessings #HarHarMahadev #JaiShreeRam #RadheKrishna"
-        )
+        print("[WARN] No GEMINI_API_KEY found, using rich long-form SEO fallback caption.")
+        return get_rich_long_fallback()
 
     genai.configure(api_key=GEMINI_API_KEY)
     
-    # Download image temporarily into memory for Gemini Vision
+    # Download image temporarily into memory for Gemini Vision (with curl fallback)
+    img_bytes = None
     try:
-        r = requests.get(image_url, timeout=30)
-        r.raise_for_status()
-        img_bytes = r.content
-    except Exception as e:
-        print(f"[WARN] Failed to fetch image for Gemini vision: {e}")
-        img_bytes = None
+        import subprocess, tempfile
+        tmp_img = os.path.join(tempfile.gettempdir(), "bl_gemini_tmp.jpg")
+        res = subprocess.run(["curl.exe", "-s", "-L", "-f", "--retry", "3", "-o", tmp_img, image_url], timeout=30)
+        if res.returncode == 0 and os.path.exists(tmp_img) and os.path.getsize(tmp_img) > 1000:
+            with open(tmp_img, "rb") as f_tmp:
+                img_bytes = f_tmp.read()
+            try:
+                os.remove(tmp_img)
+            except Exception:
+                pass
+    except Exception as ce:
+        print(f"[WARN] curl download attempt: {ce}")
+
+    if not img_bytes:
+        try:
+            r = requests.get(image_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+            if r.status_code == 200:
+                img_bytes = r.content
+        except Exception as e:
+            print(f"[WARN] requests image fetch: {e}")
 
     prompt = """
 आप एक अत्यंत ज्ञानी, विनम्र और भावपूर्ण सनातनी आध्यात्मिक लेखक हैं।
-इस दी गई दिव्य छवि (Image) को ध्यानपूर्वक देखिए और Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही सुंदर, मनमोहक और वायरल होने वाला भक्तिमय पोस्ट लिखिए।
+दी गई दिव्य छवि (Image) को गहराई से देखिए (पहचानिए कौन से देव/देवी, मंदिर, घाट, भाव या प्रसंग है - जैसे हनुमान जी, महादेव, श्री राम, श्री कृष्ण, गणेश जी, माँ दुर्गा आदि)।
+Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही सुंदर, लंबा, भावपूर्ण, वायरल और HIGH-SEARCH SEO युक्त पोस्ट तैयार कीजिए।
 
-संरचना (Format):
-1. पहली पंक्ति: देवता/दृश्य के अनुसार एक शक्तिशाली मंत्र या जयकारा (जैसे: 🌸 जय श्री राम 🌸 / 🔱 हर हर महादेव 🔱 / 🪷 जय श्री कृष्ण 🪷)
-2. मुख्य भाव (3-4 पंक्तियाँ): इस छवि के दर्शन से मन में उठने वाला दिव्य भाव, सकारात्मक ऊर्जा और आज का सुंदर आध्यात्मिक संदेश।
-3. जीवन दर्शन / प्रेरणादायक सीख (2 पंक्तियाँ): ईश्वर पर विश्वास, कर्म और शांति का एक मीठा संदेश।
-4. आशीर्वाद पंक्ति: "प्रभु की कृपा सदैव आप और आपके परिवार पर बनी रहे। कमेंट में प्रभु का नाम लिखकर दर्शन का लाभ लें। 🙏"
-5. पेज सिग्नेचर: 🌿 भक्ति लेंस (Bhakti Lens) | नित्य दर्शन 🌿
-6. 15 से 20 ट्रेंडिंग, उच्च रीच वाले हिंदी और इंग्लिश भक्ति हैशटैग्स (जैसे: #BhaktiLens #Sanatan #DailyDarshan #Mahadev #Krishna #Ram #Bhakti #Hinduism #TempleVibes #DivineEnergy आदि)
+अनिवार्य संरचना (Exact Long-Form SEO Structure):
+1. पहली पंक्ति: देवता/दृश्य के अनुसार शक्तिशाली वैदिक मंत्र व जयकारा (जैसे: 🚩 ॐ हं हनुमते नमः | जय श्री राम 🚩 या 🔱 ॐ नमः शिवाय 🔱 या 🪷 ॐ नमो भगवते वासुदेवाय नमः 🪷)
+2. परम पावन दैनिक दर्शन (4-5 पंक्तियाँ): इस स्वरूप के दर्शन से मन में उठने वाली श्रद्धा, भक्ति, शांति और आज का पावन आध्यात्मिक संदेश।
+3. दृश्य व पावन भाव (3-4 पंक्तियाँ): छवि में दिखाई देने वाले मंदिर, घाट, दीप, प्रकृति या भाव का सजीव एवं हृदयस्पर्शी वर्णन।
+4. आध्यात्मिक सुविचार व जीवन सीख (3 बिंदुवार सीख):
+   • ईश्वर पर अटूट विश्वास और भक्ति का महत्व
+   • कठिन समय में धैर्य, कर्म और आत्मबल
+   • निस्वार्थ सेवा, शांति और सत्य का मार्ग
+5. नित्य मंगल कामना व आशीर्वाद: "प्रभु की दिव्य कृपा सदैव आप और आपके पूरे परिवार पर बनी रहे। घर में सुख, शांति, अच्छा स्वास्थ्य और सकारात्मक ऊर्जा का वास हो।"
+6. एंगेजमेंट कॉल (CTA): "👉 दर्शन का पुण्य लाभ प्राप्त करें और कमेंट में प्रभु का नाम लिखकर अपनी हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने प्रियजनों के साथ शेयर करें। 🙏"
+7. पेज सिग्नेचर: 🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿
+8. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. 🔍 मुख्य खोज एवं विषय (Searches & Topics Covered):
+   (यहाँ 15-20 ऐसे सर्च कीवर्ड्स लिखें जो लोग फेसबुक और गूगल पर सबसे ज्यादा सर्च करते हैं, जैसे: आज का सुविचार, दैनिक भक्ति दर्शन, शुभ प्रभात सुविचार, भगवान की फोटो, मंदिर दर्शन, संबंधित देवता का नाम + स्टेटस, Daily Devotional Darshan, Hindu God Wallpaper, Morning Bhakti Status आदि)
+10. 20 से 25 ट्रेंडिंग हाई-रीच हिंदी और इंग्लिश हैशटैग्स।
 
-नोट: शुद्ध, सरल, आत्मीय और हृदयस्पर्शी हिंदी में लिखें। किसी भ्रामक या अनावश्यक बात का उल्लेख न करें।
+नोट: भाषा शुद्ध, सरल, आत्मीय, सम्मानजनक और प्रवाहमयी हिंदी होनी चाहिए। पोस्ट लंबी, पठनीय और अत्यंत आकर्षक होनी चाहिए।
 """
 
     models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
@@ -109,21 +119,7 @@ def generate_devotional_caption(image_url):
             print(f"[INFO] Gemini model {m} fallback: {e}")
             continue
 
-    # Rich, viral long-form fallback caption with extensive keywords & hashtags
-    return (
-        "🙏 ॐ श्री गणेशाय नमः | ॐ नमः शिवाय | जय श्री राम | ॐ नमो भगवते वासुदेवाय 🙏\n\n"
-        "✨ आज का पावन दर्शन: जीवन में जब भी कोई मार्ग कठिन लगे, तो प्रभु के चरणों में अपना सर्वस्व समर्पित कर दीजिए। जिनका भरोसा सर्वशक्तिमान परमात्मा पर होता है, उनके संकट भी अवसर बन जाते हैं और अंधकार भी प्रकाश में बदल जाता है।\n\n"
-        "📖 आध्यात्मिक विचार व जीवन दर्शन:\n"
-        "संसार की हर वस्तु नश्वर है, परंतु प्रभु का नाम और उनकी भक्ति शाश्वत है। शुद्ध अंतःकरण से किया गया कर्म ही ईश्वर की सच्ची पूजा है। जब आप दूसरों के कल्याण की कामना करते हैं, तो भगवान स्वयं आपके जीवन के समस्त विघ्नों को हर लेते हैं।\n\n"
-        "🌺 नित्य प्रार्थना व मंगल कामना:\n"
-        "प्रभु का यह दिव्य स्वरूप आपके और आपके पूरे परिवार के जीवन में सुख, शांति, अच्छा स्वास्थ्य और सकारात्मक ऊर्जा का संचार करे। आपके घर में सदैव रिद्धि-सिद्धि और माता लक्ष्मी का वास रहे।\n\n"
-        "👉 दर्शन का लाभ लें और कमेंट में अपने इष्ट देव का नाम (हर हर महादेव / जय श्री राम / राधे राधे) लिखकर अपनी हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने प्रियजनों के साथ शेयर करें। 🙏\n\n"
-        "🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🔍 मुख्य खोज एवं विषय (Searches & Topics Covered):\n"
-        "आज का सुविचार, सुबह का शुभ संदेश, दैनिक भक्ति दर्शन, सनातन धर्म सुविचार, श्री राम आरती दर्शन, हर हर महादेव स्टेटस, राधे कृष्ण भजन, हनुमान जी कष्ट निवारण, शुभ प्रभात सुविचार, भगवान की फोटो वॉलपेपर, आध्यात्मिक अनमोल वचन, Daily Devotional Darshan, Hindu God 3D Wallpaper, Morning Bhakti Status\n\n"
-        "#भक्ति #सनातन_धर्म #दैनिक_दर्शन #हर_हर_महादेव #जय_श्री_राम #राधे_कृष्ण #शुभ_प्रभात #सुविचार #महादेव #हनुमान #श्रीराम #BhaktiLens #SanatanDharma #DailyDarshan #HarHarMahadev #JaiShreeRam #RadheKrishna #MahadevStatus #SpiritualQuotes #Hinduism"
-    )
+    return get_rich_long_fallback()
 
 
 def post_to_facebook(image_url, caption):
