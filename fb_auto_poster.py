@@ -53,6 +53,36 @@ if os.path.exists(CONFIG_FILE):
     except Exception as e:
         print(f"[WARN] Could not read fb_config.json: {e}")
 
+def get_rich_long_fallback():
+    """Generates a rich, high-engagement devotional SEO caption if Gemini Vision fails."""
+    return """✨ ॐ नमो भगवते वासुदेवाय नमः ✨
+🌿 पावन सनातन प्रभात दर्शन 🌿
+
+आज के इस पावन प्रभात पर प्रभु के इस दिव्य अलौकिक स्वरूप के दर्शन कर अपने दिन को सकारात्मक ऊर्जा, शांति और दिव्यता से परिपूर्ण बनाएं।
+
+🌸 आज का पावन विचार:
+"ईश्वर पर अटूट विश्वास और शुद्ध कर्म ही जीवन की हर कठिन परिस्थिति से पार पाने का सबसे बड़ा संबल है। जब मन में भक्ति और हृदय में सच्चाई हो, तो हर मार्ग सुगम हो जाता है।"
+
+जीवन के 3 पावन सूत्र:
+• प्रत्येक परिस्थिति में धैर्य और ईश्वर पर विश्वास
+• सत्य, प्रेम और निस्वार्थ सेवा का मार्ग
+• अहंकार का त्याग और समर्पण का भाव
+
+नित्य मंगल कामना व आशीर्वाद:
+प्रभु की असीम कृपा सदैव आप और आपके सम्पूर्ण परिवार पर बनी रहे। घर में सुख, शांति, समृद्धि, उत्तम स्वास्थ्य और सकारात्मक ऊर्जा का वास हो।
+
+👉 दर्शन का पुण्य लाभ प्राप्त करें और कमेंट बॉक्स में जय श्री राम / जय श्री कृष्ण लिखकर अपनी पावन हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने प्रियजनों के साथ शेयर करें। 🙏
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 मुख्य खोज एवं विषय (Searches & Topics Covered):
+आज का सुविचार, दैनिक भक्ति दर्शन, शुभ प्रभात सुविचार, भगवान की फोटो, मंदिर दर्शन, हिन्दू धर्म दर्शन, Daily Devotional Darshan, Hindu God Wallpaper, Morning Bhakti Status, Sanatan Dharma Quotes, Daily Spiritual Energy, Divine Blessings Today
+
+#BhaktiLens #SanatanDharma #DailyDarshan #ShubhPrabhat #HinduGods #BhaktiStatus #DivineEnergy #MorningBlessings #HarHarMahadev #JaiShriKrishna #JaiShriRam #BhaktiVibez #DailySuvichar #SpiritualIndia #IncredibleIndia"""
+
+
 def generate_devotional_caption(image_url):
     """Uses Gemini Vision AI to inspect image and generate a heartfelt spiritual caption and tags."""
     if not GEMINI_API_KEY or genai is None:
@@ -66,7 +96,7 @@ def generate_devotional_caption(image_url):
     try:
         import subprocess, tempfile
         tmp_img = os.path.join(tempfile.gettempdir(), "bl_gemini_tmp.jpg")
-        res = subprocess.run(["curl.exe", "-s", "-L", "-f", "--retry", "3", "-o", tmp_img, image_url], timeout=30)
+        res = subprocess.run(["curl" if sys.platform != "win32" else "curl.exe", "-s", "-L", "-f", "--retry", "3", "-o", tmp_img, image_url], timeout=30)
         if res.returncode == 0 and os.path.exists(tmp_img) and os.path.getsize(tmp_img) > 1000:
             with open(tmp_img, "rb") as f_tmp:
                 img_bytes = f_tmp.read()
@@ -109,7 +139,7 @@ Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही स
 नोट: भाषा शुद्ध, सरल, आत्मीय, सम्मानजनक और प्रवाहमयी हिंदी होनी चाहिए। पोस्ट लंबी, पठनीय और अत्यंत आकर्षक होनी चाहिए।
 """
 
-    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    models_to_try = ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
     for m in models_to_try:
         try:
             model = genai.GenerativeModel(m)
