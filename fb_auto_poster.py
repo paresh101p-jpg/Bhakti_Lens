@@ -186,6 +186,7 @@ def get_direct_page_access_token(page_id, token):
         url = f"https://graph.facebook.com/v19.0/{page_id}?fields=access_token&access_token={token}"
         res = requests.get(url, timeout=15)
         data = res.json()
+        print(f"  -> [DEBUG] Token Exchange Response for Page {page_id}: {data}")
         if "access_token" in data:
             print(f"  -> [AUTH] Successfully resolved dedicated Page Access Token for Page {page_id}")
             return data["access_token"]
@@ -196,6 +197,7 @@ def get_direct_page_access_token(page_id, token):
 
 def post_to_facebook(image_url, caption):
     """Publishes photo + caption directly to Facebook Page via Graph API."""
+    print(f"  -> [DEBUG] Using FB_PAGE_ID='{FB_PAGE_ID}', Token Prefix='{FB_PAGE_ACCESS_TOKEN[:10]}', Token Len={len(FB_PAGE_ACCESS_TOKEN)}")
     if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
         print("❌ [ERROR] Missing FB_PAGE_ID or FB_PAGE_ACCESS_TOKEN!")
         print("   Please provide your Permanent Facebook Page Access Token in fb_config.json or Environment Variables.")
