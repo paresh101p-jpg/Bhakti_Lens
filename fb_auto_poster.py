@@ -153,17 +153,20 @@ Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही स
 - कतई कोई 'Searches & Topics Covered' या कीवर्ड डंप नहीं लिखना है। पोस्ट पूरी तरह आत्मीय, भक्तिमय और मानवीय होनी चाहिए।
 """
 
-    models_to_try = ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
     for m in models_to_try:
         try:
             model = genai.GenerativeModel(m)
             if img_bytes:
-                response = model.generate_content([
-                    {"mime_type": "image/jpeg", "data": img_bytes},
-                    prompt
-                ])
+                response = model.generate_content(
+                    [{"mime_type": "image/jpeg", "data": img_bytes}, prompt],
+                    request_options={"timeout": 15}
+                )
             else:
-                response = model.generate_content(prompt)
+                response = model.generate_content(
+                    prompt,
+                    request_options={"timeout": 15}
+                )
             if response and response.text:
                 return response.text.strip()
         except Exception as e:
@@ -173,6 +176,24 @@ Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही स
     return get_rich_long_fallback()
 
 
+def get_direct_page_access_token(page_id, token):
+    """
+    If the provided token is a User Access Token, automatically fetch the
+    dedicated Page Access Token for this Page to avoid '#200 App not allowed
+    to publish to other users timelines' error.
+    """
+    try:
+        url = f"https://graph.facebook.com/v19.0/{page_id}?fields=access_token&access_token={token}"
+        res = requests.get(url, timeout=15)
+        data = res.json()
+        if "access_token" in data:
+            print(f"  -> [AUTH] Successfully resolved dedicated Page Access Token for Page {page_id}")
+            return data["access_token"]
+    except Exception as e:
+        print(f"  [WARN] Page access token exchange attempt: {e}")
+    return token
+
+
 def post_to_facebook(image_url, caption):
     """Publishes photo + caption directly to Facebook Page via Graph API."""
     if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
@@ -180,11 +201,14 @@ def post_to_facebook(image_url, caption):
         print("   Please provide your Permanent Facebook Page Access Token in fb_config.json or Environment Variables.")
         return False
 
+    # Automatically resolve dedicated Page Token
+    effective_token = get_direct_page_access_token(FB_PAGE_ID, FB_PAGE_ACCESS_TOKEN)
+
     url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos"
     payload = {
         "url": image_url,
         "caption": caption,
-        "access_token": FB_PAGE_ACCESS_TOKEN
+        "access_token": effective_token
     }
 
     try:
