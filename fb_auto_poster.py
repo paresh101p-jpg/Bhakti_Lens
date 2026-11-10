@@ -34,9 +34,9 @@ USED_URLS_FILE = os.path.join(BASE_DIR, "used_urls.txt")
 BACKUP_URLS_FILE = os.path.join(BASE_DIR, "images_urls_backup.txt")
 
 # Environment / Credentials
-FB_PAGE_ID = os.environ.get("FB_PAGE_ID", "").strip()
-FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN", "").strip()
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+FB_PAGE_ID = (os.environ.get("FB_PAGE_ID") or "").strip()
+FB_PAGE_ACCESS_TOKEN = (os.environ.get("FB_PAGE_ACCESS_TOKEN") or os.environ.get("FB_ACCESS_TOKEN") or "").strip()
+GEMINI_API_KEY = (os.environ.get("GEMINI_API_KEY") or "").strip()
 
 # Local config fallback if running locally
 CONFIG_FILE = os.path.join(BASE_DIR, "fb_config.json")
@@ -45,16 +45,35 @@ if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
             cfg = json.load(cf)
             if not FB_PAGE_ID:
-                FB_PAGE_ID = cfg.get("FB_PAGE_ID", "")
+                FB_PAGE_ID = cfg.get("FB_PAGE_ID", "").strip()
             if not FB_PAGE_ACCESS_TOKEN:
-                FB_PAGE_ACCESS_TOKEN = cfg.get("FB_PAGE_ACCESS_TOKEN", "")
+                FB_PAGE_ACCESS_TOKEN = (cfg.get("FB_PAGE_ACCESS_TOKEN") or cfg.get("FB_ACCESS_TOKEN") or "").strip()
             if not GEMINI_API_KEY:
-                GEMINI_API_KEY = cfg.get("GEMINI_API_KEY", "")
+                GEMINI_API_KEY = cfg.get("GEMINI_API_KEY", "").strip()
     except Exception as e:
         print(f"[WARN] Could not read fb_config.json: {e}")
 
+# Check permanent token file fallback
+PERM_TOKEN_FILE = os.path.join(BASE_DIR, "fb_permanent_token.txt")
+if not FB_PAGE_ACCESS_TOKEN and os.path.exists(PERM_TOKEN_FILE):
+    try:
+        with open(PERM_TOKEN_FILE, "r", encoding="utf-8") as pf:
+            FB_PAGE_ACCESS_TOKEN = pf.read().strip()
+    except Exception:
+        pass
+
+# Fallback for Gemini key from Auto-Insta-Krishna
+if not GEMINI_API_KEY:
+    alt_gemini = os.path.join(BASE_DIR, "..", "Auto-Insta-Krishna", "gemini_key.txt")
+    if os.path.exists(alt_gemini):
+        try:
+            with open(alt_gemini, "r", encoding="utf-8") as gf:
+                GEMINI_API_KEY = gf.read().strip()
+        except Exception:
+            pass
+
 def get_rich_long_fallback():
-    """Generates a rich, high-engagement devotional SEO caption if Gemini Vision fails."""
+    """Generates a rich, soulful, human-first devotional caption (100% compliant with zero keyword stuffing rule)."""
     return """✨ ॐ नमो भगवते वासुदेवाय नमः ✨
 🌿 पावन सनातन प्रभात दर्शन 🌿
 
@@ -66,7 +85,7 @@ def get_rich_long_fallback():
 जीवन के 3 पावन सूत्र:
 • प्रत्येक परिस्थिति में धैर्य और ईश्वर पर विश्वास
 • सत्य, प्रेम और निस्वार्थ सेवा का मार्ग
-• अहंकार का त्याग और समर्पण का भाव
+• अहंकार का त्याग और पूर्ण समर्पण का भाव
 
 नित्य मंगल कामना व आशीर्वाद:
 प्रभु की असीम कृपा सदैव आप और आपके सम्पूर्ण परिवार पर बनी रहे। घर में सुख, शांति, समृद्धि, उत्तम स्वास्थ्य और सकारात्मक ऊर्जा का वास हो।
@@ -77,10 +96,7 @@ def get_rich_long_fallback():
 🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔍 मुख्य खोज एवं विषय (Searches & Topics Covered):
-आज का सुविचार, दैनिक भक्ति दर्शन, शुभ प्रभात सुविचार, भगवान की फोटो, मंदिर दर्शन, हिन्दू धर्म दर्शन, Daily Devotional Darshan, Hindu God Wallpaper, Morning Bhakti Status, Sanatan Dharma Quotes, Daily Spiritual Energy, Divine Blessings Today
-
-#BhaktiLens #SanatanDharma #DailyDarshan #ShubhPrabhat #HinduGods #BhaktiStatus #DivineEnergy #MorningBlessings #HarHarMahadev #JaiShriKrishna #JaiShriRam #BhaktiVibez #DailySuvichar #SpiritualIndia #IncredibleIndia"""
+#BhaktiLens #SanatanDharma #DailyDarshan #ShubhPrabhat"""
 
 
 def generate_devotional_caption(image_url):
@@ -118,9 +134,9 @@ def generate_devotional_caption(image_url):
     prompt = """
 आप एक अत्यंत ज्ञानी, विनम्र और भावपूर्ण सनातनी आध्यात्मिक लेखक हैं।
 दी गई दिव्य छवि (Image) को गहराई से देखिए (पहचानिए कौन से देव/देवी, मंदिर, घाट, भाव या प्रसंग है - जैसे हनुमान जी, महादेव, श्री राम, श्री कृष्ण, गणेश जी, माँ दुर्गा आदि)।
-Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही सुंदर, लंबा, भावपूर्ण, वायरल और HIGH-SEARCH SEO युक्त पोस्ट तैयार कीजिए।
+Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही सुंदर, लंबा, भावपूर्ण और 100% human-first पोस्ट तैयार कीजिए।
 
-अनिवार्य संरचना (Exact Long-Form SEO Structure):
+अनिवार्य संरचना:
 1. पहली पंक्ति: देवता/दृश्य के अनुसार शक्तिशाली वैदिक मंत्र व जयकारा (जैसे: 🚩 ॐ हं हनुमते नमः | जय श्री राम 🚩 या 🔱 ॐ नमः शिवाय 🔱 या 🪷 ॐ नमो भगवते वासुदेवाय नमः 🪷)
 2. परम पावन दैनिक दर्शन (4-5 पंक्तियाँ): इस स्वरूप के दर्शन से मन में उठने वाली श्रद्धा, भक्ति, शांति और आज का पावन आध्यात्मिक संदेश।
 3. दृश्य व पावन भाव (3-4 पंक्तियाँ): छवि में दिखाई देने वाले मंदिर, घाट, दीप, प्रकृति या भाव का सजीव एवं हृदयस्पर्शी वर्णन।
@@ -131,12 +147,10 @@ Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही स
 5. नित्य मंगल कामना व आशीर्वाद: "प्रभु की दिव्य कृपा सदैव आप और आपके पूरे परिवार पर बनी रहे। घर में सुख, शांति, अच्छा स्वास्थ्य और सकारात्मक ऊर्जा का वास हो।"
 6. एंगेजमेंट कॉल (CTA): "👉 दर्शन का पुण्य लाभ प्राप्त करें और कमेंट में प्रभु का नाम लिखकर अपनी हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने प्रियजनों के साथ शेयर करें। 🙏"
 7. पेज सिग्नेचर: 🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿
-8. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-9. 🔍 मुख्य खोज एवं विषय (Searches & Topics Covered):
-   (यहाँ 15-20 ऐसे सर्च कीवर्ड्स लिखें जो लोग फेसबुक और गूगल पर सबसे ज्यादा सर्च करते हैं, जैसे: आज का सुविचार, दैनिक भक्ति दर्शन, शुभ प्रभात सुविचार, भगवान की फोटो, मंदिर दर्शन, संबंधित देवता का नाम + स्टेटस, Daily Devotional Darshan, Hindu God Wallpaper, Morning Bhakti Status आदि)
-10. 20 से 25 ट्रेंडिंग हाई-रीच हिंदी और इंग्लिश हैशटैग्स।
+8. केवल 3 से 5 प्रासंगिक एवं स्वच्छ हैशटैग्स (जैसे: #BhaktiLens #SanatanDharma #DailyDarshan #ShubhPrabhat)।
 
-नोट: भाषा शुद्ध, सरल, आत्मीय, सम्मानजनक और प्रवाहमयी हिंदी होनी चाहिए। पोस्ट लंबी, पठनीय और अत्यंत आकर्षक होनी चाहिए।
+महत्वपूर्ण नियम:
+- कतई कोई 'Searches & Topics Covered' या कीवर्ड डंप नहीं लिखना है। पोस्ट पूरी तरह आत्मीय, भक्तिमय और मानवीय होनी चाहिए।
 """
 
     models_to_try = ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
@@ -242,6 +256,7 @@ def main():
         print(f"  -> Queue updated. Remaining in active queue: {len(urls)}")
     else:
         print("  -> Post failed. URL preserved in queue for retry.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ __pycache__/
 images/*.jpg
 images/*.png
 images/*.webp
+images/uploaded/
 
 
 fb_permanent_token.txt
