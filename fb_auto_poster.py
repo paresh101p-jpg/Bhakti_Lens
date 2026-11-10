@@ -176,41 +176,36 @@ Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही स
     return get_rich_long_fallback()
 
 
-def get_direct_page_access_token(page_id, token):
-    """
-    If the provided token is a User Access Token, automatically fetch the
-    dedicated Page Access Token for this Page to avoid '#200 App not allowed
-    to publish to other users timelines' error.
-    """
-    try:
-        url = f"https://graph.facebook.com/v19.0/{page_id}?fields=access_token&access_token={token}"
-        res = requests.get(url, timeout=15)
-        data = res.json()
-        print(f"  -> [DEBUG] Token Exchange Response for Page {page_id}: {data}")
-        if "access_token" in data:
-            print(f"  -> [AUTH] Successfully resolved dedicated Page Access Token for Page {page_id}")
-            return data["access_token"]
-    except Exception as e:
-        print(f"  [WARN] Page access token exchange attempt: {e}")
-    return token
-
-
 def post_to_facebook(image_url, caption):
     """Publishes photo + caption directly to Facebook Page via Graph API."""
-    print(f"  -> [DEBUG] Using FB_PAGE_ID='{FB_PAGE_ID}', Token Prefix='{FB_PAGE_ACCESS_TOKEN[:10]}', Token Len={len(FB_PAGE_ACCESS_TOKEN)}")
-    if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
-        print("❌ [ERROR] Missing FB_PAGE_ID or FB_PAGE_ACCESS_TOKEN!")
+    if not FB_PAGE_ACCESS_TOKEN:
+        print("❌ [ERROR] Missing FB_PAGE_ACCESS_TOKEN!")
         print("   Please provide your Permanent Facebook Page Access Token in fb_config.json or Environment Variables.")
         return False
 
-    # Automatically resolve dedicated Page Token
-    effective_token = get_direct_page_access_token(FB_PAGE_ID, FB_PAGE_ACCESS_TOKEN)
+    # Check token identity via /me to automatically resolve the correct Page endpoint
+    target_id = "me"
+    page_name = "Bhakti Lens"
+    try:
+        me_res = requests.get(f"https://graph.facebook.com/v19.0/me?access_token={FB_PAGE_ACCESS_TOKEN}", timeout=15).json()
+        if "id" in me_res:
+            target_id = me_res["id"]
+            page_name = me_res.get("name", "Bhakti Lens")
+            print(f"  -> [AUTH] Connected to Facebook Page: '{page_name}' (ID: {target_id})")
+        else:
+            print(f"  -> [AUTH] /me query info: {me_res}")
+            if FB_PAGE_ID:
+                target_id = FB_PAGE_ID
+    except Exception as me_err:
+        print(f"  [WARN] /me lookup failed: {me_err}")
+        if FB_PAGE_ID:
+            target_id = FB_PAGE_ID
 
-    url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos"
+    url = f"https://graph.facebook.com/v19.0/{target_id}/photos"
     payload = {
         "url": image_url,
         "caption": caption,
-        "access_token": effective_token
+        "access_token": FB_PAGE_ACCESS_TOKEN
     }
 
     try:
@@ -218,7 +213,7 @@ def post_to_facebook(image_url, caption):
         res_data = res.json()
         if "id" in res_data:
             post_id = res_data.get("post_id", res_data["id"])
-            print(f"  ✅ [SUCCESS] Published to Facebook Page successfully!")
+            print(f"  ✅ [SUCCESS] Published to Facebook Page '{page_name}' successfully!")
             print(f"     Post ID: {post_id}")
             return True
         else:
