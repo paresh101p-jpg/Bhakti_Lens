@@ -21,9 +21,17 @@ import json
 import random
 import requests
 try:
-    import google.generativeai as genai
+    from google import genai
 except ImportError:
-    genai = None
+    try:
+        import google.generativeai as genai
+    except ImportError:
+        genai = None
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -100,78 +108,116 @@ def get_rich_long_fallback():
 
 
 def generate_devotional_caption(image_url):
-    """Uses Gemini Vision AI to inspect image and generate a heartfelt spiritual caption and tags."""
+    """Uses Gemini Vision AI to inspect image and generate a rich, heartfelt spiritual caption and tags."""
     if not GEMINI_API_KEY or genai is None:
-        print("[WARN] No GEMINI_API_KEY found, using rich long-form SEO fallback caption.")
+        print("[WARN] No GEMINI_API_KEY found or genai missing, using rich long-form fallback caption.")
         return get_rich_long_fallback()
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    
-    # Download image temporarily into memory for Gemini Vision (with curl fallback)
-    img_bytes = None
-    try:
-        import subprocess, tempfile
-        tmp_img = os.path.join(tempfile.gettempdir(), "bl_gemini_tmp.jpg")
-        res = subprocess.run(["curl" if sys.platform != "win32" else "curl.exe", "-s", "-L", "-f", "--retry", "3", "-o", tmp_img, image_url], timeout=30)
-        if res.returncode == 0 and os.path.exists(tmp_img) and os.path.getsize(tmp_img) > 1000:
-            with open(tmp_img, "rb") as f_tmp:
-                img_bytes = f_tmp.read()
-            try:
-                os.remove(tmp_img)
-            except Exception:
-                pass
-    except Exception as ce:
-        print(f"[WARN] curl download attempt: {ce}")
+    import io, subprocess, tempfile
 
-    if not img_bytes:
+    # Step 1: Download and prepare image with thumbnail resizing for fast vision processing
+    pil_img = None
+    tmp_img = os.path.join(tempfile.gettempdir(), f"bl_gemini_tmp_{int(time.time())}.jpg")
+    try:
+        curl_bin = "curl.exe" if sys.platform == "win32" else "curl"
+        res = subprocess.run([curl_bin, "-s", "-L", "-f", "--retry", "3", "-o", tmp_img, image_url], timeout=30)
+        if res.returncode == 0 and os.path.exists(tmp_img) and os.path.getsize(tmp_img) > 1000:
+            if Image:
+                pil_img = Image.open(tmp_img)
+                pil_img.load()
+                if pil_img.mode != "RGB":
+                    pil_img = pil_img.convert("RGB")
+                pil_img.thumbnail((512, 512))
+    except Exception as ce:
+        print(f"[WARN] curl image download error: {ce}")
+
+    if pil_img is None:
         try:
             r = requests.get(image_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
             if r.status_code == 200:
-                img_bytes = r.content
-        except Exception as e:
-            print(f"[WARN] requests image fetch: {e}")
+                if Image:
+                    pil_img = Image.open(io.BytesIO(r.content))
+                    pil_img.load()
+                    if pil_img.mode != "RGB":
+                        pil_img = pil_img.convert("RGB")
+                    pil_img.thumbnail((512, 512))
+        except Exception as re:
+            print(f"[WARN] requests image download error: {re}")
 
     prompt = """
 आप एक अत्यंत ज्ञानी, विनम्र और भावपूर्ण सनातनी आध्यात्मिक लेखक हैं।
-दी गई दिव्य छवि (Image) को गहराई से देखिए (पहचानिए कौन से देव/देवी, मंदिर, घाट, भाव या प्रसंग है - जैसे हनुमान जी, महादेव, श्री राम, श्री कृष्ण, गणेश जी, माँ दुर्गा आदि)।
-Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही सुंदर, लंबा, भावपूर्ण और 100% human-first पोस्ट तैयार कीजिए।
+दी गई दिव्य छवि (Image) को गहराई से देखिए और पहचानिए कि इसमें कौन से देव/देवी, मंदिर, घाट, भाव, आभूषण, वेशभूषा, आयुध या पावन दृश्य है (जैसे: श्री राम, महादेव, श्री कृष्ण, हनुमान जी, माँ दुर्गा, गणेश जी, गंगा आरती आदि)।
+Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही सुंदर, विस्तृत (Long), भावपूर्ण और 100% human-first पोस्ट तैयार कीजिए।
 
 अनिवार्य संरचना:
-1. पहली पंक्ति: देवता/दृश्य के अनुसार शक्तिशाली वैदिक मंत्र व जयकारा (जैसे: 🚩 ॐ हं हनुमते नमः | जय श्री राम 🚩 या 🔱 ॐ नमः शिवाय 🔱 या 🪷 ॐ नमो भगवते वासुदेवाय नमः 🪷)
-2. परम पावन दैनिक दर्शन (4-5 पंक्तियाँ): इस स्वरूप के दर्शन से मन में उठने वाली श्रद्धा, भक्ति, शांति और आज का पावन आध्यात्मिक संदेश।
-3. दृश्य व पावन भाव (3-4 पंक्तियाँ): छवि में दिखाई देने वाले मंदिर, घाट, दीप, प्रकृति या भाव का सजीव एवं हृदयस्पर्शी वर्णन।
-4. आध्यात्मिक सुविचार व जीवन सीख (3 बिंदुवार सीख):
-   • ईश्वर पर अटूट विश्वास और भक्ति का महत्व
-   • कठिन समय में धैर्य, कर्म और आत्मबल
-   • निस्वार्थ सेवा, शांति और सत्य का मार्ग
-5. नित्य मंगल कामना व आशीर्वाद: "प्रभु की दिव्य कृपा सदैव आप और आपके पूरे परिवार पर बनी रहे। घर में सुख, शांति, अच्छा स्वास्थ्य और सकारात्मक ऊर्जा का वास हो।"
-6. एंगेजमेंट कॉल (CTA): "👉 दर्शन का पुण्य लाभ प्राप्त करें और कमेंट में प्रभु का नाम लिखकर अपनी हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने प्रियजनों के साथ शेयर करें। 🙏"
-7. पेज सिग्नेचर: 🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿
-8. केवल 3 से 5 प्रासंगिक एवं स्वच्छ हैशटैग्स (जैसे: #BhaktiLens #SanatanDharma #DailyDarshan #ShubhPrabhat)।
+1. शीर्ष पंक्ति: देवता/स्वरूप के अनुसार शक्तिशाली वैदिक मंत्र व पावन जयकारा (जैसे: 🚩 ॐ श्री रामाय नमः | सियावर रामचंद्र की जय 🚩 या 🔱 ॐ नमः शिवाय 🔱 | हर हर महादेव 🚩 या 🪷 ॐ नमो भगवते वासुदेवाय नमः 🪷)
+2. पावन श्लोक / चौपाई व सरल अर्थ: स्वरूप से संबंधित एक प्रामाणिक संस्कृत श्लोक या चौपाई तथा उसका सहज, सुंदर हिंदी अर्थ।
+3. दिव्य दर्शन व छवि का सजीव वर्णन (विस्तृत पैराग्राफ): छवि में प्रभु के स्वरूप (मुखमंडल का तेज, नयन, वेशभूषा, आयुध/अलंकार, पृष्ठभूमि के मंदिर, शिखर, दीप, सूर्योदय/प्राकृतिक छटा) का अत्यंत सुंदर, मंत्रमुग्ध करने वाला सजीव वर्णन।
+4. पौराणिक कथा / आध्यात्मिक रहस्य: इस स्वरूप की महिमा, मर्यादा, शक्ति, भक्ति या इतिहास से जुड़ा एक गहरा आध्यात्मिक प्रसंग।
+5. जीवन के 4 पावन सूत्र व सीख (बिंदुवार):
+   • मर्यादा, संयम और सत्यनिष्ठा
+   • कठिन से कठिन परिस्थिति में धैर्य और धर्म पर अडिग रहना
+   • अहंकार का त्याग और समर्पण भाव
+   • जन-कल्याण और निस्वार्थ सेवा
+6. नित्य मंगल कामना व आशीर्वाद: 'प्रभु की असीम कृपा सदैव आप और आपके सम्पूर्ण परिवार पर बनी रहे। आपके जीवन में सुख, शांति, समृद्धि, उत्तम स्वास्थ्य और सकारात्मक ऊर्जा का वास हो।'
+7. एंगेजमेंट कॉल (CTA): '👉 आज के इस पावन दर्शन का पुण्य लाभ प्राप्त करें और कमेंट बॉक्स में प्रभु का नाम लिखकर अपनी पावन हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने परिजनों और मित्रों के साथ साझा करें। 🙏'
+8. पेज सिग्नेचर:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. केवल 4-5 स्वच्छ एवं प्रासंगिक हैशटैग्स (जैसे: #BhaktiLens #SanatanDharma #DailyDarshan #ShubhPrabhat)
 
 महत्वपूर्ण नियम:
-- कतई कोई 'Searches & Topics Covered' या कीवर्ड डंप नहीं लिखना है। पोस्ट पूरी तरह आत्मीय, भक्तिमय और मानवीय होनी चाहिए।
+- कतई कोई 'Searches & Topics Covered' या कीवर्ड डंप नहीं लिखना है।
+- कोई फ्रीक्वेंसी नंबर (432Hz/528Hz) नहीं लिखना है।
+- भाषा शुद्ध, गरिमामयी, भावपूर्ण, आत्मीय और लंबी (Long & Deep) होनी चाहिए।
 """
 
-    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
-    for m in models_to_try:
+    # Primary: New official google-genai SDK with modern models
+    if hasattr(genai, "Client"):
+        for m in ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash"]:
+            try:
+                client = genai.Client(api_key=GEMINI_API_KEY, http_options={"timeout": 60000})
+                contents = [pil_img, prompt] if pil_img is not None else [prompt]
+                response = client.models.generate_content(model=m, contents=contents)
+                if response and response.text:
+                    if os.path.exists(tmp_img):
+                        try:
+                            os.remove(tmp_img)
+                        except Exception:
+                            pass
+                    return response.text.strip()
+            except Exception as me:
+                print(f"[INFO] google.genai model {m} attempt: {me}")
+                continue
+
+    # Secondary fallback: Legacy google.generativeai SDK
+    if hasattr(genai, "configure") and hasattr(genai, "GenerativeModel"):
         try:
-            model = genai.GenerativeModel(m)
-            if img_bytes:
-                response = model.generate_content(
-                    [{"mime_type": "image/jpeg", "data": img_bytes}, prompt],
-                    request_options={"timeout": 15}
-                )
-            else:
-                response = model.generate_content(
-                    prompt,
-                    request_options={"timeout": 15}
-                )
-            if response and response.text:
-                return response.text.strip()
-        except Exception as e:
-            print(f"[INFO] Gemini model {m} fallback: {e}")
-            continue
+            genai.configure(api_key=GEMINI_API_KEY)
+            for m in ["gemini-1.5-flash", "gemini-1.5-pro"]:
+                try:
+                    model = genai.GenerativeModel(m)
+                    contents = [pil_img, prompt] if pil_img is not None else prompt
+                    response = model.generate_content(contents, request_options={"timeout": 30})
+                    if response and response.text:
+                        if os.path.exists(tmp_img):
+                            try:
+                                os.remove(tmp_img)
+                            except Exception:
+                                pass
+                        return response.text.strip()
+                except Exception as lme:
+                    print(f"[INFO] google.generativeai model {m} attempt: {lme}")
+                    continue
+        except Exception as lge:
+            print(f"[WARN] google.generativeai error: {lge}")
+
+    if os.path.exists(tmp_img):
+        try:
+            os.remove(tmp_img)
+        except Exception:
+            pass
 
     return get_rich_long_fallback()
 
