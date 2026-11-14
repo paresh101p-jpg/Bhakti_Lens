@@ -1,4 +1,4 @@
-name: Bhakti Lens Daily Facebook Auto Post
+name: Bhakti Lens Daily Facebook & Instagram Auto Post
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  post-to-facebook:
+  post-to-facebook-and-instagram:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -24,11 +24,13 @@ jobs:
         run: |
           pip install requests google-genai pillow google-generativeai
 
-      - name: Run Facebook Auto Poster with Gemini Vision
+      - name: Run Dual Facebook & Instagram Auto Poster
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN || secrets.FB_ACCESS_TOKEN }}
           FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN || secrets.FB_PAGE_ACCESS_TOKEN }}
+          IG_ACCOUNT_ID: ${{ secrets.IG_ACCOUNT_ID }}
+          IG_USERNAME: "Bhakti_Lens1"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python fb_auto_poster.py
@@ -38,6 +40,6 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "Bhakti Lens Bot"
           git add images_urls.txt used_urls.txt images_urls_backup.txt || true
-          git commit -m "Auto-posted daily image to Facebook Page [skip ci]" || true
+          git commit -m "Auto-posted daily image to Facebook & Instagram [skip ci]" || true
           git push origin master || true
 

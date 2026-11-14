@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-BHAKTI LENS - FACEBOOK DAILY AUTO POSTER
+BHAKTI LENS - FACEBOOK & INSTAGRAM DUAL AUTO POSTER
 =============================================================================
 - Reads unposted 3:4 devotional image URLs from 'images_urls.txt'
-- Uses Google Gemini Vision AI to scan image visual features
-- Crafts rich, devotional Hindi spiritual captions with blessings & life wisdom
-- Generates 15-20 trending devotional hashtags
-- Publishes directly to Facebook Page using official Facebook Graph API
-- Automatically manages queue: moves used URL to 'used_urls.txt'
+- Uses Google Gemini Vision AI to inspect image aesthetics
+- Crafts short, clean, deeply spiritual devotional captions (NO extra long fluff)
+- Posts simultaneously to:
+    1. Facebook Page ('Bhakti Lens')
+    2. Instagram Professional Account ('@Bhakti_Lens1')
+- Automatically manages queue: moves posted URL to 'used_urls.txt'
 - Runs on daily GitHub Actions schedule or locally
 =============================================================================
 """
@@ -44,6 +45,8 @@ BACKUP_URLS_FILE = os.path.join(BASE_DIR, "images_urls_backup.txt")
 # Environment / Credentials
 FB_PAGE_ID = (os.environ.get("FB_PAGE_ID") or "").strip()
 FB_PAGE_ACCESS_TOKEN = (os.environ.get("FB_PAGE_ACCESS_TOKEN") or os.environ.get("FB_ACCESS_TOKEN") or "").strip()
+IG_ACCOUNT_ID = (os.environ.get("IG_ACCOUNT_ID") or "").strip()
+IG_USERNAME = (os.environ.get("IG_USERNAME") or "Bhakti_Lens1").strip()
 GEMINI_API_KEY = (os.environ.get("GEMINI_API_KEY") or "").strip()
 
 # Local config fallback if running locally
@@ -53,9 +56,13 @@ if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
             cfg = json.load(cf)
             if not FB_PAGE_ID:
-                FB_PAGE_ID = cfg.get("FB_PAGE_ID", "").strip()
+                FB_PAGE_ID = str(cfg.get("FB_PAGE_ID", "")).strip()
             if not FB_PAGE_ACCESS_TOKEN:
                 FB_PAGE_ACCESS_TOKEN = (cfg.get("FB_PAGE_ACCESS_TOKEN") or cfg.get("FB_ACCESS_TOKEN") or "").strip()
+            if not IG_ACCOUNT_ID:
+                IG_ACCOUNT_ID = str(cfg.get("IG_ACCOUNT_ID", "")).strip()
+            if not IG_USERNAME and cfg.get("IG_USERNAME"):
+                IG_USERNAME = str(cfg.get("IG_USERNAME")).strip()
             if not GEMINI_API_KEY:
                 GEMINI_API_KEY = cfg.get("GEMINI_API_KEY", "").strip()
     except Exception as e:
@@ -80,42 +87,28 @@ if not GEMINI_API_KEY:
         except Exception:
             pass
 
-def get_rich_long_fallback():
-    """Generates a rich, soulful, human-first devotional caption (100% compliant with zero keyword stuffing rule)."""
+
+def get_short_devotional_fallback():
+    """Generates a clean, short, aesthetic devotional caption (zero clutter)."""
     return """✨ ॐ नमो भगवते वासुदेवाय नमः ✨
-🌿 पावन सनातन प्रभात दर्शन 🌿
 
-आज के इस पावन प्रभात पर प्रभु के इस दिव्य अलौकिक स्वरूप के दर्शन कर अपने दिन को सकारात्मक ऊर्जा, शांति और दिव्यता से परिपूर्ण बनाएं।
+प्रभु के इस दिव्य पावन स्वरूप के दर्शन कर अपने दिन की शुरुआत सकारात्मक ऊर्जा और शांति से करें। प्रभु की कृपा सदैव आप और आपके परिवार पर बनी रहे। 🌸🙏
 
-🌸 आज का पावन विचार:
-"ईश्वर पर अटूट विश्वास और शुद्ध कर्म ही जीवन की हर कठिन परिस्थिति से पार पाने का सबसे बड़ा संबल है। जब मन में भक्ति और हृदय में सच्चाई हो, तो हर मार्ग सुगम हो जाता है।"
+👉 कमेंट में 'जय श्री राम' / 'जय श्री कृष्ण' लिखकर प्रभु का आशीर्वाद प्राप्त करें!
 
-जीवन के 3 पावन सूत्र:
-• प्रत्येक परिस्थिति में धैर्य और ईश्वर पर विश्वास
-• सत्य, प्रेम और निस्वार्थ सेवा का मार्ग
-• अहंकार का त्याग और पूर्ण समर्पण का भाव
-
-नित्य मंगल कामना व आशीर्वाद:
-प्रभु की असीम कृपा सदैव आप और आपके सम्पूर्ण परिवार पर बनी रहे। घर में सुख, शांति, समृद्धि, उत्तम स्वास्थ्य और सकारात्मक ऊर्जा का वास हो।
-
-👉 दर्शन का पुण्य लाभ प्राप्त करें और कमेंट बॉक्स में जय श्री राम / जय श्री कृष्ण लिखकर अपनी पावन हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने प्रियजनों के साथ शेयर करें। 🙏
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-#BhaktiLens #SanatanDharma #DailyDarshan #ShubhPrabhat"""
+🌿 Bhakti Lens | सनातन धर्म 🌿
+#BhaktiLens #SanatanDharma #DailyDarshan #Bhakti"""
 
 
 def generate_devotional_caption(image_url):
-    """Uses Gemini Vision AI to inspect image and generate a rich, heartfelt spiritual caption and tags."""
+    """Uses Gemini Vision AI to inspect image and generate a short, clean, impactful spiritual caption."""
     if not GEMINI_API_KEY or genai is None:
-        print("[WARN] No GEMINI_API_KEY found or genai missing, using rich long-form fallback caption.")
-        return get_rich_long_fallback()
+        print("[WARN] No GEMINI_API_KEY found or genai missing, using short fallback caption.")
+        return get_short_devotional_fallback()
 
     import io, subprocess, tempfile
 
-    # Step 1: Download and prepare image with thumbnail resizing for fast vision processing
+    # Step 1: Download and prepare image for fast vision processing
     pil_img = None
     tmp_img = os.path.join(tempfile.gettempdir(), f"bl_gemini_tmp_{int(time.time())}.jpg")
     try:
@@ -145,37 +138,26 @@ def generate_devotional_caption(image_url):
             print(f"[WARN] requests image download error: {re}")
 
     prompt = """
-आप एक अत्यंत ज्ञानी, विनम्र और भावपूर्ण सनातनी आध्यात्मिक लेखक हैं।
-दी गई दिव्य छवि (Image) को गहराई से देखिए और पहचानिए कि इसमें कौन से देव/देवी, मंदिर, घाट, भाव, आभूषण, वेशभूषा, आयुध या पावन दृश्य है (जैसे: श्री राम, महादेव, श्री कृष्ण, हनुमान जी, माँ दुर्गा, गणेश जी, गंगा आरती आदि)।
-Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही सुंदर, विस्तृत (Long), भावपूर्ण और 100% human-first पोस्ट तैयार कीजिए।
+आप एक सनातनी आध्यात्मिक लेखक हैं।
+दी गई छवि (Image) को देखकर पहचानिए कि इसमें कौन से देव/देवी या पावन दृश्य हैं (जैसे: श्री राम, महादेव, श्री कृष्ण, हनुमान जी, माँ दुर्गा आदि)।
+'Bhakti Lens' (@Bhakti_Lens1) के लिए एक अत्यंत सुंदर, संक्षिप्त (Short & Crisp), भावपूर्ण पोस्ट तैयार कीजिए।
 
-अनिवार्य संरचना:
-1. शीर्ष पंक्ति: देवता/स्वरूप के अनुसार शक्तिशाली वैदिक मंत्र व पावन जयकारा (जैसे: 🚩 ॐ श्री रामाय नमः | सियावर रामचंद्र की जय 🚩 या 🔱 ॐ नमः शिवाय 🔱 | हर हर महादेव 🚩 या 🪷 ॐ नमो भगवते वासुदेवाय नमः 🪷)
-2. पावन श्लोक / चौपाई व सरल अर्थ: स्वरूप से संबंधित एक प्रामाणिक संस्कृत श्लोक या चौपाई तथा उसका सहज, सुंदर हिंदी अर्थ।
-3. दिव्य दर्शन व छवि का सजीव वर्णन (विस्तृत पैराग्राफ): छवि में प्रभु के स्वरूप (मुखमंडल का तेज, नयन, वेशभूषा, आयुध/अलंकार, पृष्ठभूमि के मंदिर, शिखर, दीप, सूर्योदय/प्राकृतिक छटा) का अत्यंत सुंदर, मंत्रमुग्ध करने वाला सजीव वर्णन।
-4. पौराणिक कथा / आध्यात्मिक रहस्य: इस स्वरूप की महिमा, मर्यादा, शक्ति, भक्ति या इतिहास से जुड़ा एक गहरा आध्यात्मिक प्रसंग।
-5. जीवन के 4 पावन सूत्र व सीख (बिंदुवार):
-   • मर्यादा, संयम और सत्यनिष्ठा
-   • कठिन से कठिन परिस्थिति में धैर्य और धर्म पर अडिग रहना
-   • अहंकार का त्याग और समर्पण भाव
-   • जन-कल्याण और निस्वार्थ सेवा
-6. नित्य मंगल कामना व आशीर्वाद: 'प्रभु की असीम कृपा सदैव आप और आपके सम्पूर्ण परिवार पर बनी रहे। आपके जीवन में सुख, शांति, समृद्धि, उत्तम स्वास्थ्य और सकारात्मक ऊर्जा का वास हो।'
-7. एंगेजमेंट कॉल (CTA): '👉 आज के इस पावन दर्शन का पुण्य लाभ प्राप्त करें और कमेंट बॉक्स में प्रभु का नाम लिखकर अपनी पावन हाजिरी अवश्य लगाएं! इस दिव्य दर्शन को अपने परिजनों और मित्रों के साथ साझा करें। 🙏'
-8. पेज सिग्नेचर:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🌿 भक्ति लेंस (Bhakti Lens) | सनातन धर्म नित्य दर्शन 🌿
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-9. केवल 4-5 स्वच्छ एवं प्रासंगिक हैशटैग्स (जैसे: #BhaktiLens #SanatanDharma #DailyDarshan #ShubhPrabhat)
+अनिवार्य संरचना (बहुत ही संक्षिप्त रखें, अधिकतम 35-50 शब्द):
+1. शीर्ष पंक्ति: देवता के अनुसार 1 शक्तिशाली पावन जयकारा / मंत्र (जैसे: 🚩 ॐ श्री रामाय नमः 🚩 या 🔱 हर हर महादेव 🔱 या 🪷 ॐ नमो भगवते वासुदेवाय नमः 🪷)
+2. 2-3 पंक्तियों का सुंदर, मधुर आध्यात्मिक भाव / आशीर्वाद (बिना किसी लंबे पैराग्राफ या कहानी के)
+3. एक पंक्ति का एंगेजमेंट कॉल: '👉 कमेंट में प्रभु का नाम लिखकर पावन हाजिरी लगाएं! 🙏'
+4. पेज सिग्नेचर:
+🌿 Bhakti Lens | सनातन धर्म 🌿
+5. केवल 4-5 प्रासंगिक हैशटैग्स: #BhaktiLens #SanatanDharma #DailyDarshan #Bhakti
 
-महत्वपूर्ण नियम:
-- कतई कोई 'Searches & Topics Covered' या कीवर्ड डंप नहीं लिखना है।
-- कोई फ्रीक्वेंसी नंबर (432Hz/528Hz) नहीं लिखना है।
-- भाषा शुद्ध, गरिमामयी, भावपूर्ण, आत्मीय और लंबी (Long & Deep) होनी चाहिए।
+सख्त नियम:
+- कोई लंबा निबंध, कोई 4-5 पॉइंट्स/बुलेटिन, कोई कहानी, कोई व्यर्थ टेक्स्ट बिल्कुल न लिखें।
+- पोस्ट छोटी, मीठी, आकर्षक और तुरंत पढ़ने योग्य होनी चाहिए।
 """
 
-    # Primary: New official google-genai SDK with modern models
+    # Primary: New official google-genai SDK
     if hasattr(genai, "Client"):
-        for m in ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash"]:
+        for m in ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.1-flash-lite"]:
             try:
                 client = genai.Client(api_key=GEMINI_API_KEY, http_options={"timeout": 60000})
                 contents = [pil_img, prompt] if pil_img is not None else [prompt]
@@ -188,7 +170,6 @@ Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही स
                             pass
                     return response.text.strip()
             except Exception as me:
-                print(f"[INFO] google.genai model {m} attempt: {me}")
                 continue
 
     # Secondary fallback: Legacy google.generativeai SDK
@@ -207,8 +188,7 @@ Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही स
                             except Exception:
                                 pass
                         return response.text.strip()
-                except Exception as lme:
-                    print(f"[INFO] google.generativeai model {m} attempt: {lme}")
+                except Exception:
                     continue
         except Exception as lge:
             print(f"[WARN] google.generativeai error: {lge}")
@@ -219,35 +199,31 @@ Facebook पेज 'Bhakti Lens' के लिए एक बहुत ही स
         except Exception:
             pass
 
-    return get_rich_long_fallback()
+    return get_short_devotional_fallback()
 
 
 def post_to_facebook(image_url, caption):
     """Publishes photo + caption directly to Facebook Page via Graph API."""
     if not FB_PAGE_ACCESS_TOKEN:
-        print("❌ [ERROR] Missing FB_PAGE_ACCESS_TOKEN!")
-        print("   Please provide your Permanent Facebook Page Access Token in fb_config.json or Environment Variables.")
-        return False
+        print("❌ [FB ERROR] Missing FB_PAGE_ACCESS_TOKEN!")
+        return False, None
 
-    # Check token identity via /me to automatically resolve the correct Page endpoint
     target_id = "me"
     page_name = "Bhakti Lens"
     try:
-        me_res = requests.get(f"https://graph.facebook.com/v19.0/me?access_token={FB_PAGE_ACCESS_TOKEN}", timeout=15).json()
+        me_res = requests.get(f"https://graph.facebook.com/v21.0/me?access_token={FB_PAGE_ACCESS_TOKEN}", timeout=15).json()
         if "id" in me_res:
             target_id = me_res["id"]
             page_name = me_res.get("name", "Bhakti Lens")
-            print(f"  -> [AUTH] Connected to Facebook Page: '{page_name}' (ID: {target_id})")
+            print(f"  -> [FB AUTH] Connected to Facebook Page: '{page_name}' (ID: {target_id})")
         else:
-            print(f"  -> [AUTH] /me query info: {me_res}")
             if FB_PAGE_ID:
                 target_id = FB_PAGE_ID
-    except Exception as me_err:
-        print(f"  [WARN] /me lookup failed: {me_err}")
+    except Exception:
         if FB_PAGE_ID:
             target_id = FB_PAGE_ID
 
-    url = f"https://graph.facebook.com/v19.0/{target_id}/photos"
+    url = f"https://graph.facebook.com/v21.0/{target_id}/photos"
     payload = {
         "url": image_url,
         "caption": caption,
@@ -259,27 +235,87 @@ def post_to_facebook(image_url, caption):
         res_data = res.json()
         if "id" in res_data:
             post_id = res_data.get("post_id", res_data["id"])
-            print(f"  ✅ [SUCCESS] Published to Facebook Page '{page_name}' successfully!")
-            print(f"     Post ID: {post_id}")
-            return True
+            print(f"  ✅ [FB SUCCESS] Published to Facebook Page '{page_name}'! (Post ID: {post_id})")
+            return True, target_id
         else:
             print(f"  ❌ [FB API ERROR]: {json.dumps(res_data, indent=2)}")
+            return False, target_id
+    except Exception as e:
+        print(f"  ❌ [FB REQUEST ERROR]: {e}")
+        return False, target_id
+
+
+def get_instagram_account_id(page_id, token):
+    """Fetches connected Instagram Business/Creator Account ID for the Facebook Page."""
+    if IG_ACCOUNT_ID:
+        return IG_ACCOUNT_ID
+    try:
+        target = page_id if page_id and page_id != "me" else (FB_PAGE_ID or "me")
+        url = f"https://graph.facebook.com/v21.0/{target}?fields=instagram_business_account&access_token={token}"
+        res = requests.get(url, timeout=15).json()
+        if "instagram_business_account" in res and "id" in res["instagram_business_account"]:
+            ig_id = res["instagram_business_account"]["id"]
+            print(f"  -> [IG AUTH] Connected Instagram Account ID: {ig_id} (@{IG_USERNAME})")
+            return ig_id
+        else:
+            print(f"  -> [IG AUTH] instagram_business_account field: {res}")
+    except Exception as e:
+        print(f"  [WARN] Could not auto-detect Instagram Account ID: {e}")
+    return None
+
+
+def post_to_instagram(image_url, caption, ig_id, token):
+    """Publishes photo + caption directly to Instagram Professional Account via Graph API."""
+    if not ig_id:
+        print(f"  ⚠️ [IG SKIPPED] Instagram Business ID not linked to FB Page yet.")
+        print(f"     Please link Instagram '@{IG_USERNAME}' with 'Bhakti Lens' Facebook Page in Meta Business Suite.")
+        return False
+
+    try:
+        # Step 1: Create media container
+        create_url = f"https://graph.facebook.com/v21.0/{ig_id}/media"
+        payload = {
+            "image_url": image_url,
+            "caption": caption,
+            "access_token": token
+        }
+        c_res = requests.post(create_url, data=payload, timeout=30).json()
+        if "id" not in c_res:
+            print(f"  ❌ [IG CONTAINER ERROR]: {json.dumps(c_res, indent=2)}")
+            return False
+
+        container_id = c_res["id"]
+        print(f"  -> Instagram Media Container created: {container_id}. Waiting for processing...")
+        time.sleep(8)
+
+        # Step 2: Publish media container
+        pub_url = f"https://graph.facebook.com/v21.0/{ig_id}/media_publish"
+        pub_payload = {
+            "creation_id": container_id,
+            "access_token": token
+        }
+        p_res = requests.post(pub_url, data=pub_payload, timeout=30).json()
+        if "id" in p_res:
+            print(f"  ✅ [IG SUCCESS] Published to Instagram @{IG_USERNAME} successfully! (Media ID: {p_res['id']})")
+            return True
+        else:
+            print(f"  ❌ [IG PUBLISH ERROR]: {json.dumps(p_res, indent=2)}")
             return False
     except Exception as e:
-        print(f"  ❌ [REQUEST ERROR]: {e}")
+        print(f"  ❌ [IG REQUEST ERROR]: {e}")
         return False
 
 
 def main():
     print("=" * 65)
-    print("  🌸 BHAKTI LENS - FACEBOOK AUTO POST ENGINE")
+    print("  🌸 BHAKTI LENS - FACEBOOK & INSTAGRAM DUAL AUTO POSTER")
+    print(f"  Channels: Facebook ('Bhakti Lens') + Instagram (@{IG_USERNAME})")
     print("=" * 65)
 
     if not os.path.exists(URLS_FILE):
         print(f"[INFO] No images_urls.txt found. Creating template...")
         with open(URLS_FILE, "w", encoding="utf-8") as f:
             f.write("")
-        print("Please add image URLs to images_urls.txt or run image uploader.")
         return
 
     with open(URLS_FILE, "r", encoding="utf-8") as f:
@@ -305,27 +341,29 @@ def main():
     chosen_url = urls.pop(0)
     print(f"\n[1/3] Selected Image from Queue: {chosen_url}")
 
-    print("\n[2/3] Analyzing image visual aesthetics with Gemini Vision AI...")
+    print("\n[2/3] Generating clean, concise devotional caption with Gemini Vision AI...")
     caption = generate_devotional_caption(chosen_url)
     print("-----------------------------------------------------------------")
-    print(caption[:300] + ("..." if len(caption) > 300 else ""))
+    print(caption)
     print("-----------------------------------------------------------------")
 
-    print("\n[3/3] Posting to Facebook Page 'Bhakti Lens'...")
-    success = post_to_facebook(chosen_url, caption)
+    print(f"\n[3/3] Publishing to Facebook ('Bhakti Lens') and Instagram (@{IG_USERNAME})...")
+    fb_ok, page_id = post_to_facebook(chosen_url, caption)
 
-    if success:
+    ig_id = get_instagram_account_id(page_id, FB_PAGE_ACCESS_TOKEN)
+    ig_ok = post_to_instagram(chosen_url, caption, ig_id, FB_PAGE_ACCESS_TOKEN)
+
+    if fb_ok or ig_ok:
         # Move URL to used
         with open(USED_URLS_FILE, "a", encoding="utf-8") as f:
             f.write(chosen_url + "\n")
         with open(URLS_FILE, "w", encoding="utf-8") as f:
             f.write("\n".join(urls) + "\n")
-        print(f"  -> Queue updated. Remaining in active queue: {len(urls)}")
+        print(f"\n🎉 [COMPLETE] Queue updated. Remaining in active queue: {len(urls)}")
     else:
-        print("  -> Post failed. URL preserved in queue for retry.")
+        print("\n❌ [FAILED] Both Facebook and Instagram publishing failed. URL preserved in queue.")
         sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-
